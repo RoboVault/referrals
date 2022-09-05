@@ -33,9 +33,9 @@ contract VaultWrapper is Ownable {
         address prevReferrer = referrals[recipient];
 
 
-        if(prevReferrer == 0x0) {
-            referrals[recipient] = (referrer == 0x0)?treasury:referrer;
-        }else if(prevReferrer != referrer && referrer != 0) {
+        if(prevReferrer == address(0)) {
+            referrals[recipient] = (referrer == address(0))?treasury:referrer;
+        }else if(prevReferrer != referrer && referrer != address(0)) {
             emit ReferrerChanged(recipient, prevReferrer, referrer);
             //TODO decrease position of old referrer and increase new referrer?
             // uint256 amountAlreadyDeposited = vault.balanceOf(recipient);
@@ -49,8 +49,8 @@ contract VaultWrapper is Ownable {
     
     
     function withdraw(uint256 amount, uint256 maxLoss) external returns (uint256) {
-        if(referrals[msg.sender] != 0x0) {
-            emit WithdrawReferral(msg.sender, amount, referrals[recipient]);
+        if(referrals[msg.sender] != address(0)) {
+            emit WithdrawReferral(msg.sender, amount, referrals[msg.sender]);
         }
         return vault.withdraw(amount, msg.sender, maxLoss);
     }

@@ -6,7 +6,7 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface VaultAPI is IERC20 {
+interface IVault is IERC20 {
     function name() external view returns (string calldata);
 
     function symbol() external view returns (string calldata);
@@ -40,8 +40,6 @@ interface VaultAPI is IERC20 {
     function withdraw(uint256 maxShares, address recipient, uint256 maxLoss) external returns (uint256);
 
     function token() external view returns (address);
-
-    function strategies(address _strategy) external view returns (StrategyParams memory);
 
     function pricePerShare() external view returns (uint256);
 

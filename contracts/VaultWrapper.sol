@@ -10,7 +10,7 @@ import "./interfaces/IVault.sol";
 contract VaultWrapper is Ownable {
     address public treasury; //Default address for the ones that deposit without a referral code
     mapping(address => address) public referrals;
-
+    mapping(address => bool) public allowedVaults;
     constructor(address _treasury) public {
         treasury = _treasury;
     }
@@ -26,9 +26,16 @@ contract VaultWrapper is Ownable {
         address referrer
     );
 
+    event VaultStatusChanged(
+        address vault,
+        bool allowed
+    );
 
     function deposit(uint256 amount, address referrer, address vault) external returns (uint256) {
-        require(referrer != msg.sender, "self_referral");
+        require(referrer != msg.sender); // dev: self_referral
+        require(allowedVaults[vault]); // dev: unsupported_vault
+        if(referrer == address(0)) 
+            referrer = treasury;
         address recipient = msg.sender;
         IERC20(IVault(vault).token()).transferFrom(recipient, address(this), amount);
         IERC20(IVault(vault).token()).approve(vault, amount);
@@ -67,5 +74,15 @@ contract VaultWrapper is Ownable {
         for(uint256 i = 0; i < accounts.length; i++) {
             _overrideReferrerInternal(accounts[i], treasury);
         }
+    }
+
+    function allowVault(address vault) external onlyOwner {
+        allowedVaults[vault] = true;
+        emit VaultStatusChanged(vault, true);
+    }
+
+    function revokeVault(address vault) external onlyOwner {
+        allowedVaults[vault] = false;
+        emit VaultStatusChanged(vault, false);
     }
 }

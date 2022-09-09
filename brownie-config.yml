@@ -1,5 +1,3 @@
-# use Ganache's forked mainnet mode as the default network
-# NOTE: You don't *have* to do this, but it is often helpful for testing
 networks:
   default: avax-main-fork
 
@@ -8,7 +6,6 @@ autofetch_sources: True
 
 # require OpenZepplin Contracts
 dependencies:
-  - yearn/yearn-vaults@0.4.3
   - OpenZeppelin/openzeppelin-contracts@3.1.0
 
 # path remapping to support imports from GitHub/NPM
@@ -19,7 +16,6 @@ compiler:
         enabled: true
         runs: 200
     remappings:
-      - "@yearnvaults=yearn/yearn-vaults@0.4.3"
       - "@openzeppelin=OpenZeppelin/openzeppelin-contracts@3.1.0"
 
 reports:

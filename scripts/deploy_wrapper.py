@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from brownie import VaultWrapper, accounts, config, network, project, web3
+from brownie import ReferralVaultWrapper, accounts, config, network, project, web3
 from eth_utils import is_checksum_address
 import click
 
@@ -35,4 +35,4 @@ def main():
     if input("Deploy Wrapper? y/[N]: ").lower() != "y":
         return
 
-    vaultWrapper = VaultWrapper.deploy(treasury, {"from": dev}, publish_source=publish_source)
+    vaultWrapper = ReferralVaultWrapper.deploy(treasury, {"from": dev}, publish_source=publish_source)

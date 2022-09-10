@@ -29,10 +29,12 @@ def main():
     dev = accounts.load(click.prompt("Account", type=click.Choice(accounts.load())))
     print(f"You are using: 'dev' [{dev.address}]")
 
-    treasury = get_address('Treasury address: ')
-    
+    treasury = get_address("Treasury address: ")
+
     publish_source = click.confirm("Verify source on etherscan?")
     if input("Deploy Wrapper? y/[N]: ").lower() != "y":
         return
 
-    vaultWrapper = ReferralVaultWrapper.deploy(treasury, {"from": dev}, publish_source=publish_source)
+    vaultWrapper = ReferralVaultWrapper.deploy(
+        treasury, {"from": dev}, publish_source=publish_source
+    )

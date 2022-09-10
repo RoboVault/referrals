@@ -18,7 +18,7 @@
   <h3 align="center">Robo Vault Referral Contracts</h3>
 
   <p align="center">
-    referral contracts for Robo Vaults referral program
+    Contracts for Robo Vaults referral program
     <br />
     <a href="https://docs.robo-vault.com/referrals"><strong>Explore the docs »</strong></a>
     <br />

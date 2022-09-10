@@ -6,7 +6,6 @@ on:
     - main
     - develop
   pull_request:
-    - main
 
 jobs:
     solidity:

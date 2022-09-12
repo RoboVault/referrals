@@ -64,7 +64,7 @@ contract RewardsDistributor is IMerkleDistributor, Ownable {
     }
 
 
-    function _claimInternal(uint256 index, address account, uint256[] amounts, bytes32[] calldata merkleProof, address actualReceiver) {
+    function _claim(uint256 index, address account, uint256[] amounts, bytes32[] calldata merkleProof, address actualReceiver) {
         require(!isClaimed(index), 'RewardsDistributor: Reward already claimed.');
 
         // Verify the merkle proof.
@@ -82,13 +82,13 @@ contract RewardsDistributor is IMerkleDistributor, Ownable {
 
 
     function claimRewardsBlackList(uint256 index, address account, uint256[] amounts, bytes32[] calldata merkleProof) external onlyOwner {
-        _claimInternal(index, account, amounts, merkleProof, treasury);
+        _claim(index, account, amounts, merkleProof, treasury);
         //TODO emit event blacklist claim
     }
 
     function claim(uint256 index, uint256[] amounts, bytes32[] calldata merkleProof) external override {
         require(!blacklistedAddress[msg.sender], 'RewardsDistributor: Address blacklisted.');
-        _claimInternal(index, msg.sender, amounts, merkleProof, msg.sender);
+        _claim(index, msg.sender, amounts, merkleProof, msg.sender);
         emit Claimed(index, msg.sender, amounts);
 
     }

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0
 
-pragma solidity 0.6.12;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.16;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -13,7 +12,7 @@ import "./interfaces/IVault.sol";
 /// a vault referral program.
 contract ReferralVaultWrapper is Ownable {
     /// @param _treasury treasury address
-    constructor(address _treasury) public {
+    constructor(address _treasury) {
         treasury = _treasury;
     }
 

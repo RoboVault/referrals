@@ -116,8 +116,8 @@ contract ReferralVaultWrapper is Ownable {
         address _referrer,
         address _vault
     ) external returns (uint256) {
-        require(_referrer != msg.sender); /// @dev: self_referral
-        require(approvedVaults[_vault]); /// @dev: unsupported_vault
+        require(_referrer != msg.sender); // @dev: self_referral
+        require(approvedVaults[_vault]); // @dev: unsupported_vault
         if (_referrer == address(0)) _referrer = treasury;
         address recipient = msg.sender;
         IERC20(IVault(_vault).token()).transferFrom(

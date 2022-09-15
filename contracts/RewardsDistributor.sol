@@ -13,7 +13,7 @@ contract RewardsDistributor is AccessControl {
 
     address public treasury; //Send some funds back if we find a bad actor that needs to be blacklisted / emergency withdrawals
     address[] public vaults;
-    
+
     bytes32 public constant GOV_ROLE = keccak256("GOV_ROLE");
     bytes32 public constant BLACKLIST_ROLE = keccak256("BLACKLIST_ROLE");
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
@@ -25,9 +25,24 @@ contract RewardsDistributor is AccessControl {
 
     event MerkleRootUpdated(bytes32 merkleRoot, uint256 period);
     event VaultAdded(address vault);
-    event ReferralsClaimed(uint256 period, uint256 index, address account, uint256[] amounts);
-    event ReferralsClaimedMulti(uint256[] periods, uint256[] indexes, address account);
-    event BlacklistClaimed(uint256 period, uint256 index, address blackListedAccount, uint256[] amounts, address claimedTo);
+    event ReferralsClaimed(
+        uint256 period,
+        uint256 index,
+        address account,
+        uint256[] amounts
+    );
+    event ReferralsClaimedMulti(
+        uint256[] periods,
+        uint256[] indexes,
+        address account
+    );
+    event BlacklistClaimed(
+        uint256 period,
+        uint256 index,
+        address blackListedAccount,
+        uint256[] amounts,
+        address claimedTo
+    );
     event BlackListUpdated(address user, bool isBlacklisted);
     event EmergencyWithdraw(address asset);
     event EmergencyModeUpdated(bool isEmergencyModeActive);
@@ -53,6 +68,7 @@ contract RewardsDistributor is AccessControl {
 
     function updateMerkleRoot(bytes32 _root, uint256 period) external {
         require(hasRole(MANAGER_ROLE, msg.sender));
+        require(merkleRoots[period] == 0, "Alrady set");
 
         merkleRoots[period] = _root;
         emit MerkleRootUpdated(_root, period);
@@ -72,7 +88,11 @@ contract RewardsDistributor is AccessControl {
         emit BlackListUpdated(_user, false);
     }
 
-    function isClaimed(uint256 period, uint256 index) public view returns (bool) {
+    function isClaimed(uint256 period, uint256 index)
+        public
+        view
+        returns (bool)
+    {
         uint256 claimedWordIndex = index / 256;
         uint256 claimedBitIndex = index % 256;
         uint256 claimedWord = claimedBitMap[period][claimedWordIndex];
@@ -83,48 +103,94 @@ contract RewardsDistributor is AccessControl {
     function _setClaimed(uint256 period, uint256 index) private {
         uint256 claimedWordIndex = index / 256;
         uint256 claimedBitIndex = index % 256;
-        claimedBitMap[period][claimedWordIndex] = claimedBitMap[period][claimedWordIndex] | (1 << claimedBitIndex);
+        claimedBitMap[period][claimedWordIndex] =
+            claimedBitMap[period][claimedWordIndex] |
+            (1 << claimedBitIndex);
     }
 
-    function _claim(uint256 period, uint256 index, address account, uint256[] calldata amounts, bytes32[] calldata merkleProof, address actualReceiver) internal {
-        require(!emergencyMode, 'Emergency mode is active, rewards are paused');
-        require(!isClaimed(period, index), 'Reward already claimed');
-        // FIXME we could remove this require, since the MerkleProof will fail with a wrong length of amounts (different hash)
-        require(amounts.length < vaults.length); // @dev: RewardsDistributor: wrong number in amounts array
+    /**
+        @notice there is no need to check that amounts[]'s length is <= vaults[]'s length, cause the MerkleProof will fail for a different (wrong) number of amounts
+    */
+    function _claim(
+        uint256 period,
+        uint256 index,
+        address account,
+        uint256[] calldata amounts,
+        bytes32[] calldata merkleProof,
+        address actualReceiver
+    ) internal {
+        require(!emergencyMode, "Emergency mode is active, rewards are paused");
+        require(!isClaimed(period, index), "Reward already claimed");
 
         // Verify the merkle proof.
-        bytes32 node = keccak256(abi.encodePacked(period, index, account, amounts));
-        require(MerkleProof.verify(merkleProof, merkleRoots[period], node), 'Invalid proof');
+        bytes32 node = keccak256(
+            abi.encodePacked(period, index, account, amounts)
+        );
+        require(
+            MerkleProof.verify(merkleProof, merkleRoots[period], node),
+            "Invalid proof"
+        );
 
         // Mark it claimed and send the tokens
         _setClaimed(period, index);
-        for(uint256 i = 0; i < amounts.length; i++) {
-            if(amounts[i] != 0) {
-                require(IERC20(vaults[i]).transfer(actualReceiver, amounts[i]), 'Transfer failed');
+        for (uint256 i = 0; i < amounts.length; i++) {
+            if (amounts[i] != 0) {
+                require(
+                    IERC20(vaults[i]).transfer(actualReceiver, amounts[i]),
+                    "Transfer failed"
+                );
             }
         }
     }
 
-    function claimRewardsBlackList(uint256 period, uint256 index, address account, uint256[] calldata amounts, bytes32[] calldata merkleProof) external {
+    function claimRewardsBlackList(
+        uint256 period,
+        uint256 index,
+        address account,
+        uint256[] calldata amounts,
+        bytes32[] calldata merkleProof
+    ) external {
         require(hasRole(BLACKLIST_ROLE, msg.sender));
         require(blacklistedAddress[msg.sender]); // @dev: RewardsDistributor: Address not blacklisted
         _claim(period, index, account, amounts, merkleProof, treasury);
         emit BlacklistClaimed(period, index, msg.sender, amounts, treasury);
     }
 
-    function claim(uint256 period, uint256 index, uint256[] calldata amounts, bytes32[] calldata merkleProof) external {
-        require(!blacklistedAddress[msg.sender], 'Address blacklisted'); // @dev: RewardsDistributor: Address blacklisted
+    function claim(
+        uint256 period,
+        uint256 index,
+        uint256[] calldata amounts,
+        bytes32[] calldata merkleProof
+    ) external {
+        require(!blacklistedAddress[msg.sender], "Address blacklisted"); // @dev: RewardsDistributor: Address blacklisted
         _claim(period, index, msg.sender, amounts, merkleProof, msg.sender);
         emit ReferralsClaimed(period, index, msg.sender, amounts);
     }
 
-    function claimMultiple(uint256[] calldata periods, uint256[] calldata indexes, uint256[][] calldata amounts, bytes32[][] calldata merkleProof) external {
+    function claimMultiple(
+        uint256[] calldata periods,
+        uint256[] calldata indexes,
+        uint256[][] calldata amounts,
+        bytes32[][] calldata merkleProof
+    ) external {
         require(periods.length == indexes.length); // @dev: RewardsDistributor: invalid lengths of parameters
         require(periods.length == amounts.length); // @dev: RewardsDistributor: invalid lengths of parameters
         require(periods.length == merkleProof.length); // @dev: RewardsDistributor: invalid lengths of parameters
-        for(uint256 i = 0; i < periods.length; i++) {
-            _claim(periods[i], indexes[i], msg.sender, amounts[i], merkleProof[i], msg.sender);
-            emit ReferralsClaimed(periods[i], indexes[i], msg.sender, amounts[i]);
+        for (uint256 i = 0; i < periods.length; i++) {
+            _claim(
+                periods[i],
+                indexes[i],
+                msg.sender,
+                amounts[i],
+                merkleProof[i],
+                msg.sender
+            );
+            emit ReferralsClaimed(
+                periods[i],
+                indexes[i],
+                msg.sender,
+                amounts[i]
+            );
         }
         emit ReferralsClaimedMulti(periods, indexes, msg.sender);
     }
@@ -133,8 +199,13 @@ contract RewardsDistributor is AccessControl {
     function emergencyWithdraw() external {
         require(hasRole(GOV_ROLE, msg.sender));
         require(emergencyMode);
-        for(uint256 i = 0; i < vaults.length; i++) {
-            require(IERC20(vaults[i]).transfer(treasury, IERC20(vaults[i]).balanceOf(address(this))));
+        for (uint256 i = 0; i < vaults.length; i++) {
+            require(
+                IERC20(vaults[i]).transfer(
+                    treasury,
+                    IERC20(vaults[i]).balanceOf(address(this))
+                )
+            );
         }
         emit EmergencyWithdraw(address(0));
     }
@@ -142,24 +213,38 @@ contract RewardsDistributor is AccessControl {
     function emergencyWithdrawSingle(address asset) external {
         require(hasRole(GOV_ROLE, msg.sender));
         require(emergencyMode);
-        IERC20(asset).transfer(treasury, IERC20(asset).balanceOf(address(this)));
-        for(uint256 i = 0; i < vaults.length; i++) {
-            require(IERC20(vaults[i]).transfer(treasury, IERC20(vaults[i]).balanceOf(address(this))));
+        IERC20(asset).transfer(
+            treasury,
+            IERC20(asset).balanceOf(address(this))
+        );
+        for (uint256 i = 0; i < vaults.length; i++) {
+            require(
+                IERC20(vaults[i]).transfer(
+                    treasury,
+                    IERC20(vaults[i]).balanceOf(address(this))
+                )
+            );
         }
         emit EmergencyWithdraw(asset);
     }
 
     function enableEmergencyMode() external {
-        require(hasRole(GOV_ROLE, msg.sender));
+        require(hasRole(GOV_ROLE, msg.sender) || hasRole(MANAGER, msg.sender));
         emergencyMode = true;
         emit EmergencyModeUpdated(true);
     }
 
+    /**
+        @notice only GOV can disable the emergency mode
+    */
     function disableEmergencyMode() external {
         require(hasRole(GOV_ROLE, msg.sender));
         emergencyMode = false;
         emit EmergencyModeUpdated(false);
     }
 
-
+    function setTreasury(address _treasury) external {
+        require(hasRole(GOV_ROLE, msg.sender));
+        treasury = _treasury;
+    }
 }

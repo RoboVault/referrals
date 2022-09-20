@@ -86,10 +86,10 @@ contract ReferralVaultWrapper is Ownable {
     event RegisterCode(address account, bytes32 code);
 
     /// @notice emits when a referrer transfer the ownership of his referral code to another address
-    event SetCodeOwner(address account, address newAccount, bytes32 code);
+    event SetCodeOwner(address oldAccount, address newAccount, bytes32 code);
 
     /// @notice emits when gov changes the owner of a referral code. This can happen for example if a bad actor is a referrer
-    event SetCodeOwnerGov(bytes32 code, address newAccount);
+    event SetCodeOwnerGov(address oldAccount, address newAccount, bytes32 code);
 
     /// @notice sets the referral code for a user. Users can't refer themselves
     /// @param _account the account of the user we want to set the referral code for
@@ -150,8 +150,9 @@ contract ReferralVaultWrapper is Ownable {
     /// @param _newAccount the account to transfer the ownership to
     function setCodeOwnerGov(bytes32 _code, address _newAccount) external onlyOwner {
         require(_code != bytes32(0), "Invalid _code");
+        address oldAccount = codeOwners[_code];
         codeOwners[_code] = _newAccount;
-        emit SetCodeOwnerGov(_code, _newAccount);
+        emit SetCodeOwnerGov(oldAccount, _newAccount, _code);
     }
 
     /*///////////////////////////////////////////////////////////////

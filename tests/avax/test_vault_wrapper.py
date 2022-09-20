@@ -219,3 +219,29 @@ def test_only_owner_functions(
     wrapper.transferOwnership(accounts[6], {"from": gov})
 
     assert wrapper.owner() == accounts[6]
+
+
+def test_set_code_owner(
+    user, vault, gov, wrapper, token, whale, amount, treasury
+):
+    wrapper.registerCode(REF_CODE_1.encode(), {"from": accounts[3]})
+
+    # only owner of the ref code can change the address
+    with brownie.reverts():
+        wrapper.setCodeOwner(REF_CODE_1.encode(), accounts[4], {"from": accounts[4]})
+    wrapper.setCodeOwner(REF_CODE_1.encode(), accounts[4], {"from": accounts[3]})
+    
+    assert wrapper.codeOwners(REF_CODE_1.encode()) == accounts[4]
+
+    # only gov can use setCodeOwnerGov
+    with brownie.reverts():
+        wrapper.setCodeOwnerGov(REF_CODE_1.encode(), accounts[5], {"from": accounts[5]})
+    wrapper.setCodeOwnerGov(REF_CODE_1.encode(), accounts[5], {"from": gov})
+    
+    assert wrapper.codeOwners(REF_CODE_1.encode()) == accounts[5]
+
+
+def test_get_referral_info(user, wrapper):
+    assert convert.to_string(wrapper.getReferralInfo(user)[0]).strip("\x00") == ''
+    assert wrapper.getReferralInfo(user)[1] == ZERO_ADDRESS
+    

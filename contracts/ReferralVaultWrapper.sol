@@ -97,8 +97,11 @@ contract ReferralVaultWrapper is Ownable {
     function _setReferralCode(address _account, bytes32 _code) internal {
         require(codeOwners[_code] != msg.sender, "Self referral"); // @dev: self_referral
         require(codeOwners[_code] != address(0), "Invalid code"); // @dev: Used an invalid code
-        userReferralCodes[_account] = _code;
-        emit ReferralCodeSet(_account, _code, codeOwners[_code]);
+        // If a user has already used a ref code before, we do not want to update it
+        if(userReferralCodes[_account] == bytes32(0)) {
+            userReferralCodes[_account] = _code;
+            emit ReferralCodeSet(_account, _code, codeOwners[_code]);
+        }
     }
 
     /// @notice gov can use this function to change the referral code of a User

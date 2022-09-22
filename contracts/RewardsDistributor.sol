@@ -22,12 +22,15 @@ contract RewardsDistributor is AccessControlEnumerable {
         _setRoleAdmin(BLACKLIST_ROLE, GOV_ROLE);
         _setRoleAdmin(MANAGER_ROLE, GOV_ROLE);
 
-        grantRole(GOV_ROLE, msg.sender);
-        grantRole(BLACKLIST_ROLE, msg.sender);
-        grantRole(MANAGER_ROLE, msg.sender);
+        _grantRole(GOV_ROLE, msg.sender);
+        _grantRole(BLACKLIST_ROLE, msg.sender);
+        _grantRole(MANAGER_ROLE, msg.sender);
 
         treasury = _treasury;
     }
+
+
+
 
     /*///////////////////////////////////////////////////////////////
                             TREASURY STORAGE
@@ -324,7 +327,7 @@ contract RewardsDistributor is AccessControlEnumerable {
 
         // Verify the merkle proof.
         bytes32 node = keccak256(
-            abi.encodePacked(_period, _index, _account, _amounts)
+            abi.encode(_period, _index, _account, _amounts)
         );
         require(
             MerkleProof.verify(_merkleProof, merkleRoots[_period], node),

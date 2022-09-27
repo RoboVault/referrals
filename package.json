@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "ethers": "^5.7.1",
-    "keccak256": "^1.0.6"
+    "keccak256": "^1.0.6",
+    "seedrandom": "^3.0.5"
   }
 }

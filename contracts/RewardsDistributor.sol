@@ -19,9 +19,11 @@ contract RewardsDistributor is AccessControlEnumerable {
 
     /// @param _treasury treasury address
     constructor(address _treasury) {
+        governance = msg.sender;
+        
         _setRoleAdmin(BLACKLIST_ROLE, GOV_ROLE);
         _setRoleAdmin(MANAGER_ROLE, GOV_ROLE);
-
+        
         _grantRole(GOV_ROLE, msg.sender);
         _grantRole(BLACKLIST_ROLE, msg.sender);
         _grantRole(MANAGER_ROLE, msg.sender);
@@ -29,8 +31,25 @@ contract RewardsDistributor is AccessControlEnumerable {
         treasury = _treasury;
     }
 
+    /*///////////////////////////////////////////////////////////////
+                            GOV STORAGE
+    //////////////////////////////////////////////////////////////*/
 
+    /// @notice Used to send some funds back if we find a bad actor that needs to be blacklisted, or for emergency withdrawals
+    address public governance;
+    /// @notice Emitted when the treasury is changed
+    event GovernanceUpdated(address oldGovernance, address newGovernance);
 
+    /// @notice Update the governance address.
+    /// @param _newGovernance new treasury address
+    function setGovernance(address _newGovernance) external onlyRole(GOV_ROLE) {
+        require(_newGovernance != address(0));
+        address old = governance;
+        _grantRole(GOV_ROLE, _newGovernance);
+        _revokeRole(GOV_ROLE, governance);
+        governance = _newGovernance;
+        emit GovernanceUpdated(old, governance);
+    }
 
     /*///////////////////////////////////////////////////////////////
                             TREASURY STORAGE
@@ -44,6 +63,7 @@ contract RewardsDistributor is AccessControlEnumerable {
     /// @notice Update the treasury address.
     /// @param _newTreasury new treasury address
     function setTreasury(address _newTreasury) external onlyRole(GOV_ROLE) {
+        require(_newTreasury != address(0));
         address old = treasury;
         treasury = _newTreasury;
         emit TreasuryUpdated(old, treasury);
@@ -101,7 +121,7 @@ contract RewardsDistributor is AccessControlEnumerable {
     /// @notice In case of emergency, gov can withdraw everything from the contract and send it to the treasury
     /// The event fired will have `asset` set to 0x0
     function emergencyWithdrawMulti() external onlyRole(GOV_ROLE) {
-        require(emergencyMode);
+        require(emergencyMode, "Emergency Mode not enabled");
         for (uint256 i = 0; i < vaults.length; i++) {
             require(
                 IERC20(vaults[i]).transfer(
@@ -119,7 +139,7 @@ contract RewardsDistributor is AccessControlEnumerable {
         external
         onlyRole(GOV_ROLE)
     {
-        require(emergencyMode);
+        require(emergencyMode, "Emergency Mode not enabled");
         require(
             IERC20(_asset).transfer(
                 treasury,
@@ -136,7 +156,7 @@ contract RewardsDistributor is AccessControlEnumerable {
     /// @notice keeps a record of blacklistedAddresses. Can only be modified by BLACKLIST_ROLE
     mapping(address => bool) public blacklistedAddresses;
 
-    /// @notice emits when claimBlackList() is called.
+    /// @notice emits when claimBlacklist() is called.
     event BlacklistClaimed(
         uint256 period,
         uint256 index,
@@ -245,16 +265,16 @@ contract RewardsDistributor is AccessControlEnumerable {
     /// @param _account the address of the blacklisted account
     /// @param _amounts an array with the correct amounts of rewards expected
     /// @param _merkleProof the merkle proof generated using https://www.npmjs.com/package/merkletreejs
-    function claimBlackList(
+    function claimBlacklist(
         uint256 _period,
         uint256 _index,
         address _account,
         uint256[] calldata _amounts,
         bytes32[] calldata _merkleProof
     ) external onlyRole(BLACKLIST_ROLE) {
-        require(blacklistedAddresses[msg.sender], "Address not blacklisted");
+        require(blacklistedAddresses[_account], "Address not blacklisted");
         _claim(_period, _index, _account, _amounts, _merkleProof, treasury);
-        emit BlacklistClaimed(_period, _index, msg.sender, _amounts, treasury);
+        emit BlacklistClaimed(_period, _index, _account, _amounts, treasury);
     }
 
     /// @notice this function checks that the the address is not blacklisted, and then calls the _claim() function

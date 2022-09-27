@@ -1,6 +1,6 @@
 import pytest
 from brownie import config
-from brownie import ReferralVaultWrapper
+from brownie import ReferralVaultWrapper, RewardsDistributor
 from brownie import interface, project, accounts
 
 # TODO - Pull from coingecko
@@ -68,6 +68,12 @@ def vault(conf):
 def wrapper(gov, treasury):
     vaultWrapper = gov.deploy(ReferralVaultWrapper, treasury)
     yield vaultWrapper
+
+
+@pytest.fixture
+def distributor(gov, treasury):
+    rewardsDistributor = gov.deploy(RewardsDistributor, treasury)
+    yield rewardsDistributor
 
 
 @pytest.fixture(scope="session")
